@@ -43,12 +43,14 @@ cp "$HOME/.openclaw/openclaw.json" \
 echo "备份完成：$(ls -t $TIMESTAMP_DIR | head -1)"
 ```
 
-**Step 2：克隆/下载文件**
+**Step 2：下载文件**
 ```bash
 SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 mkdir -p "$SKILL_DIR"
-# 下载五个文件：config-lib.sh / config-watcher.sh / gateway-recovery.sh / pre-stop.sh / SKILL.md
-# 从 GitHub raw URL 下载，或 git clone
+BASE_URL="https://raw.githubusercontent.com/Dios-Man/gateway-guardian/main"
+for f in config-lib.sh config-watcher.sh gateway-recovery.sh pre-stop.sh SKILL.md; do
+    curl -fsSL "$BASE_URL/$f" -o "$SKILL_DIR/$f"
+done
 ```
 
 **Step 3：生成 guardian.conf（兜底通知配置）**
@@ -75,7 +77,7 @@ After=openclaw-gateway.service
 
 [Service]
 Type=simple
-ExecStart=/bin/bash {SKILL_DIR}/config-watcher.sh
+ExecStart=/bin/bash $SKILL_DIR/config-watcher.sh
 Restart=always
 RestartSec=3
 
@@ -93,7 +95,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash {SKILL_DIR}/gateway-recovery.sh
+ExecStart=/bin/bash $SKILL_DIR/gateway-recovery.sh
 EOF
 ```
 
@@ -107,7 +109,7 @@ OnFailure=openclaw-recovery.service
 [Service]
 StartLimitBurst=3
 StartLimitIntervalSec=60
-ExecStopPost=/bin/bash {SKILL_DIR}/pre-stop.sh
+ExecStopPost=/bin/bash $SKILL_DIR/pre-stop.sh
 EOF
 ```
 
