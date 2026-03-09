@@ -70,6 +70,7 @@ chmod +x "$SKILL_DIR/pre-stop.sh"
 
 **Step 5：注册 config-watcher systemd 服务**
 ```bash
+SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 cat > ~/.config/systemd/user/openclaw-config-watcher.service << EOF
 [Unit]
 Description=OpenClaw Gateway Guardian - File Watcher
@@ -88,6 +89,7 @@ EOF
 
 **Step 6：注册 gateway-recovery systemd 服务**
 ```bash
+SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 cat > ~/.config/systemd/user/openclaw-recovery.service << EOF
 [Unit]
 Description=OpenClaw Gateway Guardian - Gateway Recovery
@@ -101,6 +103,7 @@ EOF
 
 **Step 7：注册 OnFailure drop-in + ExecStopPost 钩子**
 ```bash
+SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 mkdir -p ~/.config/systemd/user/openclaw-gateway.service.d/
 cat > ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf << EOF
 [Unit]
@@ -123,7 +126,7 @@ systemctl --user start openclaw-config-watcher.service
 **Step 9：验证安装**
 ```bash
 systemctl --user status openclaw-config-watcher.service
-systemctl --user cat openclaw-gateway.service.d/recovery.conf
+cat ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
 tail -5 /tmp/config-watcher.log
 ```
 
@@ -174,9 +177,9 @@ ls -lt ~/.openclaw/config-backups/ | head -5
 ```bash
 systemctl --user stop openclaw-config-watcher.service
 systemctl --user disable openclaw-config-watcher.service
-rm ~/.config/systemd/user/openclaw-config-watcher.service
-rm ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
-rm ~/.config/systemd/user/openclaw-recovery.service
+rm -f ~/.config/systemd/user/openclaw-config-watcher.service
+rm -f ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
+rm -f ~/.config/systemd/user/openclaw-recovery.service
 systemctl --user daemon-reload
 systemctl --user reset-failed openclaw-gateway.service 2>/dev/null
 # 可选：保留备份文件，或询问用户是否删除
