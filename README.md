@@ -59,6 +59,8 @@ Gateway Guardian 会自动处理这两种情况，并在第一时间通知你。
 情况并继续处理。
 ```
 
+> 日志内容为示意，实际显示最近 5 条操作记录。
+
 **需要你介入（无法自动修复）：**
 
 ```
@@ -180,9 +182,9 @@ config-watcher（inotifywait 常驻）
 
 网关进程崩溃
     ↓
-systemd Restart=always（自动重启，最多3次/60s）
+systemd 自动重启（OpenClaw 内置 Restart 策略）
     ↓
-StartLimitBurst 触发 OnFailure
+重启失败超过 3次/60s → StartLimitBurst 触发 OnFailure
     ↓
 gateway-recovery
     ├─ 检查配置（有问题先回滚）
