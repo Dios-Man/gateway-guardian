@@ -12,7 +12,8 @@ log "=== config-watcher 启动 ==="
 monitor_gateway_recovery() {
     local was_down=0
 
-    # 初始化：记录当前状态
+    # 初始化：延迟 10s 再开始，给 gateway 充分时间响应（After= 不保证端口就绪）
+    sleep 10
     nc -z 127.0.0.1 $GATEWAY_PORT 2>/dev/null || was_down=1
 
     while true; do
