@@ -246,7 +246,7 @@ rollback() {
 
 # ── 核心处理逻辑 ──────────────────────────────────────────────
 handle_change() {
-    local result rollback_name
+    local result
     result=$(validate_file "$CONFIG" 2>&1)
     if [ $? -eq 0 ]; then
         log "✅ 配置合法，保存备份"
