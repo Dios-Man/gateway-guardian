@@ -1,8 +1,15 @@
-# Gateway Guardian Skill
+---
+name: gateway-guardian
+description: >
+  Protect and auto-recover the OpenClaw gateway from config corruption and crashes.
+  Provides real-time config monitoring (3-layer validation + auto-rollback),
+  systemd OnFailure crash recovery, and instant notifications via Feishu/Telegram/Discord.
+  Use when: (1) user sends a GitHub link and says "帮我安装" / "install this" to install the skill,
+  (2) user asks to check status: "gateway-guardian 状态" / "guardian 运行正常吗",
+  (3) user asks to uninstall: "卸载 gateway-guardian" / "uninstall gateway-guardian".
+---
 
-## 描述
-自动守护 OpenClaw 配置文件（openclaw.json），防止错误配置导致网关崩溃。
-提供配置变化监听、三关验证、自动回滚、网关崩溃恢复、消息通知等功能。
+# Gateway Guardian Skill
 
 ## 触发条件
 用户发送 GitHub 链接并说"帮我安装"、"安装这个 skill"、"install this" 等。
