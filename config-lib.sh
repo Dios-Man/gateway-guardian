@@ -201,8 +201,12 @@ cleanup_broken() {
 }
 
 # ── 回滚函数 ──────────────────────────────────────────────────
+# 成功回滚后，将实际使用的备份名写入此变量（供 handle_change 显示）
+ROLLBACK_USED_BACKUP=""
+
 rollback() {
     local result bak
+    ROLLBACK_USED_BACKUP=""
 
     # 优先：时间戳备份（最新 → 最旧）
     while IFS= read -r f; do
@@ -211,6 +215,7 @@ rollback() {
         if [ $? -eq 0 ]; then
             cp "$CONFIG" "$CONFIG.broken.$(date +%Y%m%d-%H%M%S)"
             cp "$bak" "$CONFIG"
+            ROLLBACK_USED_BACKUP="$f"
             log "✅ 已回滚到时间戳备份：$f"
             cleanup_broken; return 0
         fi
@@ -228,6 +233,7 @@ rollback() {
         if [ $? -eq 0 ]; then
             cp "$CONFIG" "$CONFIG.broken.$(date +%Y%m%d-%H%M%S)"
             cp "$bak" "$CONFIG"
+            ROLLBACK_USED_BACKUP="$(basename "$bak")"
             log "✅ 已回滚到原生备份：$(basename "$bak")"
             cleanup_broken; return 0
         fi
@@ -250,7 +256,6 @@ handle_change() {
 
     log "❌ 配置无效：$result，开始回滚..."
     if rollback; then
-        rollback_name=$(ls -t "$TIMESTAMP_DIR/" 2>/dev/null | head -1)
         log "🔄 回滚完成，检查网关状态..."
 
         # 检查网关是否仍在运行（若宕机则尝试重启）
@@ -283,7 +288,7 @@ $(tail_log "$LOG")"
         notify_success "✅ OpenClaw 网关守护" \
 "⏰ 时间：$(date '+%Y-%m-%d %H:%M')
 📋 事件：配置文件损坏，已自动回滚并恢复
-🔧 回滚至：${rollback_name:-最近备份}
+🔧 回滚至：${ROLLBACK_USED_BACKUP:-最近备份}
 📝 关键日志：
 $(tail_log "$LOG" 5)"
 

@@ -58,7 +58,7 @@ $(tail_log "$LOG")"
                 notify_success "✅ OpenClaw 网关守护" \
 "⏰ 时间：$(date '+%Y-%m-%d %H:%M')
 📋 事件：网关崩溃，检测到配置损坏，已自动回滚并重启
-🔧 处置：回滚配置 + 重启网关
+🔧 回滚至：${ROLLBACK_USED_BACKUP:-最近备份}
 ✅ 结果：网关已恢复正常运行"
             else
                 notify_success "✅ OpenClaw 网关守护" \
