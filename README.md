@@ -101,10 +101,8 @@ Mar 09 22:10:06 node[xxx]: Error: EADDRINUSE: port 18789 already in use
 只需要告诉你的 OpenClaw：
 
 ```
-https://github.com/[作者]/gateway-guardian  帮我安装
+https://github.com/Dios-Man/gateway-guardian  帮我安装
 ```
-
-（GitHub 地址待仓库创建后更新）
 
 OpenClaw 会自动检测你的消息渠道和用户 ID，完成全部配置。
 
