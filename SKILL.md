@@ -6,6 +6,16 @@ description: >
   Use when: (1) user shares a GitHub link and says "install this" / "帮我安装",
   (2) user asks for status: "gateway-guardian status" / "guardian 运行正常吗",
   (3) user asks to uninstall: "uninstall gateway-guardian" / "卸载 gateway-guardian".
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - inotifywait
+        - nc
+        - python3
+        - journalctl
+        - systemctl
+        - openclaw
 ---
 
 # Gateway Guardian — Skill Instructions
