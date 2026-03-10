@@ -1,6 +1,6 @@
 # Gateway Guardian
 
-[中文](README.md)
+<p align="center"><a href="README.md">中文</a></p>
 
 > An OpenClaw skill that automatically rolls back corrupted configs, restarts a crashed gateway, and notifies you the moment something goes wrong.
 

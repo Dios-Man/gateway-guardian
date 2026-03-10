@@ -1,6 +1,6 @@
 # Gateway Guardian
 
-[English](README.en.md)
+<p align="center"><a href="README.en.md">English</a></p>
 
 > 一个给 OpenClaw 用户的网关防护 Skill。  
 > 配置写坏了自动回滚，网关崩溃了自动重启，出事第一时间通知你。
