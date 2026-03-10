@@ -58,7 +58,7 @@ $(tail_log "$LOG")"
                 notify_success "$_MSG_RECOVERY_SUCCESS_TITLE" \
 "⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
 📋 $_MSG_EVENT: $_MSG_RECOVERY_WITH_ROLLBACK
-🔧 $_MSG_ROLLED_BACK_TO: ${ROLLBACK_USED_BACKUP:-latest backup}
+🔧 $_MSG_ROLLED_BACK_TO: ${ROLLBACK_USED_BACKUP:-$_MSG_LATEST_BACKUP}
 ✅ $_MSG_RESULT: $_MSG_GATEWAY_BACK"
             else
                 notify_success "$_MSG_RECOVERY_SUCCESS_TITLE" \
