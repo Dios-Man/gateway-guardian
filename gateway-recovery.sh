@@ -1,6 +1,6 @@
 #!/bin/bash
-# gateway-recovery.sh — Gateway 崩溃恢复脚本
-# 由 systemd OnFailure 触发，通过 SKILL.md 安装，不可单独手动执行
+# gateway-recovery.sh — Gateway crash recovery
+# Triggered by systemd OnFailure. Installed via SKILL.md — do not run manually.
 
 LOG="/tmp/gateway-recovery.log"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,83 +9,83 @@ source "$SCRIPT_DIR/config-lib.sh"
 GATEWAY_TIMEOUT=30
 
 log "========================================="
-log "🚨 Gateway 多次重启失败，进入恢复流程"
+log "Gateway failed repeatedly — starting recovery"
 
 (
-    flock -w 60 9 || { log "❌ 获取锁超时，放弃恢复"; exit 1; }
+    flock -w 60 9 || { log "❌ Lock timeout, aborting recovery"; exit 1; }
 
-    # [1/3] 验证配置，必要时回滚
-    log "--- [1/3] 检查配置 ---"
+    # [1/3] Validate config; rollback if needed
+    log "--- [1/3] Check config ---"
     ROLLED_BACK=0
     result=$(validate_file "$CONFIG" 2>&1)
     if [ $? -ne 0 ]; then
-        log "❌ 配置有问题：$result"
+        log "❌ Config invalid: $result"
         if rollback; then
-            log "✅ 配置已回滚"
+            log "✅ Config rolled back"
             ROLLED_BACK=1
         else
-            log "🚨 配置损坏且无合法备份"
-            write_to_memory "- 事件：网关崩溃，配置损坏且无合法备份
-- 结果：❌ 无法自动恢复，需要人工处理
-- 日志：$LOG"
-            notify_urgent "🚨 OpenClaw 网关守护 - 需要人工处理" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：网关崩溃，配置文件损坏且无可用备份
-❌ 原因：所有备份均无效，无法自动恢复
-📝 最近日志：
+            log "🚨 Config corrupted and no valid backup available"
+            write_to_memory "- $_MSG_EVENT: $_MSG_MEM_CRASH_NO_BACKUP
+- $_MSG_RESULT: ❌ $_MSG_MEM_CANNOT_RECOVER
+- $_MSG_LOG: $LOG"
+            notify_urgent "$_MSG_URGENT_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_MEM_CRASH_NO_BACKUP
+❌ $_MSG_REASON: $_MSG_URGENT_NOOP_REASON
+📝 $_MSG_LOG:
 $(tail_log "$LOG")"
             exit 1
         fi
     else
-        log "✅ 配置正常"
+        log "✅ Config OK"
     fi
 
-    # [2/3] 重启网关（标记为托管重启，通知由本脚本发出）
-    log "--- [2/3] 重启 Gateway ---"
+    # [2/3] Restart gateway (flagged as managed — notifications sent by this script)
+    log "--- [2/3] Restart gateway ---"
     echo "recovery" > "$MANAGED_RESTART_FLAG"
     systemctl --user reset-failed openclaw-gateway.service 2>/dev/null
     systemctl --user restart openclaw-gateway.service
 
-    # [3/3] 等待网关启动（最多 GATEWAY_TIMEOUT 秒）
-    log "--- [3/3] 等待网关启动（最多 ${GATEWAY_TIMEOUT}s）---"
+    # [3/3] Wait for gateway to come up (up to GATEWAY_TIMEOUT seconds)
+    log "--- [3/3] Waiting for gateway (max ${GATEWAY_TIMEOUT}s) ---"
     elapsed=0
     while [ $elapsed -lt $GATEWAY_TIMEOUT ]; do
         nc -z 127.0.0.1 $GATEWAY_PORT 2>/dev/null && {
-            log "✅ Gateway 恢复成功"
-            # flag 由 monitor 删除，避免 monitor 在此之前轮询时误判为人工修复
+            log "✅ Gateway recovered"
+            # Leave flag for monitor to remove (avoids race condition)
 
             if [ "$ROLLED_BACK" = "1" ]; then
-                notify_success "✅ OpenClaw 网关守护" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：网关崩溃，检测到配置损坏，已自动回滚并重启
-🔧 回滚至：${ROLLBACK_USED_BACKUP:-最近备份}
-✅ 结果：网关已恢复正常运行"
+                notify_success "$_MSG_RECOVERY_SUCCESS_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_RECOVERY_WITH_ROLLBACK
+🔧 $_MSG_ROLLED_BACK_TO: ${ROLLBACK_USED_BACKUP:-latest backup}
+✅ $_MSG_RESULT: $_MSG_GATEWAY_BACK"
             else
-                notify_success "✅ OpenClaw 网关守护" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：网关崩溃（配置正常），已自动重启
-🔧 处置：重置失败记录 + 重启网关
-✅ 结果：网关已恢复正常运行"
+                notify_success "$_MSG_RECOVERY_SUCCESS_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_RECOVERY_NO_ROLLBACK
+🔧 $_MSG_ACTION: $_MSG_RECOVERY_RESET_ACTION
+✅ $_MSG_RESULT: $_MSG_GATEWAY_BACK"
             fi
             exit 0
         }
         sleep 5; elapsed=$((elapsed + 5))
-        log "⏳ 等待中... ${elapsed}s/${GATEWAY_TIMEOUT}s"
+        log "⏳ Waiting... ${elapsed}s/${GATEWAY_TIMEOUT}s"
     done
 
     rm -f "$MANAGED_RESTART_FLAG"
-    log "❌ ${GATEWAY_TIMEOUT}s 内未响应"
+    log "❌ Gateway still unresponsive after ${GATEWAY_TIMEOUT}s"
     log "$(systemctl --user status openclaw-gateway.service 2>&1 | tail -5)"
-    write_to_memory "- 事件：网关崩溃，自动恢复失败
-- 结果：❌ ${GATEWAY_TIMEOUT}s 内仍无响应，需要人工处理
-- 日志：$LOG"
-    notify_urgent "🚨 OpenClaw 网关守护 - 需要人工处理" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：网关崩溃，自动恢复失败
-❌ 原因：重启后 ${GATEWAY_TIMEOUT}s 内仍无响应
-📝 恢复日志：
+    write_to_memory "- $_MSG_EVENT: $_MSG_MEM_RECOVERY_FAIL
+- $_MSG_RESULT: ❌ $_MSG_MEM_TIMEOUT
+- $_MSG_LOG: $LOG"
+    notify_urgent "$_MSG_RECOVERY_FAIL_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_RECOVERY_FAIL_EVENT
+❌ $_MSG_REASON: $_MSG_RECOVERY_FAIL_REASON
+📝 $_MSG_LOG:
 $(tail_log "$LOG")
-🔍 网关日志：
+🔍 $_MSG_GATEWAY_LOG:
 $(gateway_journal_errors)"
     exit 1
 

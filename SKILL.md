@@ -1,81 +1,100 @@
 ---
 name: gateway-guardian
 description: >
-  Protect and auto-recover the OpenClaw gateway from config corruption and crashes.
-  Provides real-time config monitoring (3-layer validation + auto-rollback),
-  systemd OnFailure crash recovery, and instant notifications via Feishu/Telegram/Discord.
-  Use when: (1) user sends a GitHub link and says "帮我安装" / "install this" to install the skill,
-  (2) user asks to check status: "gateway-guardian 状态" / "guardian 运行正常吗",
-  (3) user asks to uninstall: "卸载 gateway-guardian" / "uninstall gateway-guardian".
+  Three-layer protection for the OpenClaw gateway: real-time config monitoring with
+  auto-rollback, systemd crash recovery, and tiered notifications via Feishu/Telegram/Discord.
+  Use when: (1) user shares a GitHub link and says "install this" / "帮我安装",
+  (2) user asks for status: "gateway-guardian status" / "guardian 运行正常吗",
+  (3) user asks to uninstall: "uninstall gateway-guardian" / "卸载 gateway-guardian".
 ---
 
-# Gateway Guardian Skill
+# Gateway Guardian — Skill Instructions
 
-## 触发条件
-用户发送 GitHub 链接并说"帮我安装"、"安装这个 skill"、"install this" 等。
+## Triggers
+
+Activate this skill when the user:
+- Shares `https://github.com/Dios-Man/gateway-guardian` and asks to install it
+- Says "install gateway-guardian", "帮我安装", "install this skill", or similar
+- Says "gateway-guardian status", "guardian status", "guardian 运行正常吗", or similar
+- Says "uninstall gateway-guardian", "卸载 gateway-guardian", or similar
 
 ---
 
-## 安装流程（AI 执行）
+## Installation (AI-executed)
 
-### 前置检查
-1. 确认系统为 Linux，且 systemd --user 可用
-2. 检测 inotify-tools 是否已安装，**未安装则自动安装**：
+### Pre-flight checks
+
+1. Confirm the system is Linux with `systemd --user` available:
+   ```bash
+   systemctl --user status 2>&1 | head -3
+   ```
+2. Check and install `inotify-tools` if missing:
    ```bash
    if ! which inotifywait > /dev/null 2>&1; then
        sudo apt-get install -y inotify-tools
    fi
    ```
-3. 确认 openclaw 已安装且 Gateway 正在运行
+3. Confirm OpenClaw is installed and the gateway is running.
 
-### 确定通知兜底配置
-从当前消息元数据中读取：
-- `channel`：消息渠道（feishu / telegram / discord 等）
-- `chat_type`：对话类型（direct / group）
+### Determine notification fallback
+
+Read from the current inbound message metadata:
+- `channel`: messaging platform (feishu / telegram / discord / etc.)
+- `chat_type`: conversation type (direct / group)
 - `sender_id`
 
-确定 `FALLBACK_TARGET`（动态检测失败时使用）：
-- **Feishu**：`user:{sender_id}`（无论私聊还是群聊，均发私信）
-- **Telegram**：`chat_id`（私聊直接用；群聊则询问用户 Telegram 数字 ID）
-- **Discord**：询问用户 DM channel ID
+Set `FALLBACK_TARGET` (used when dynamic session detection fails):
+- **Feishu**: `user:{sender_id}` — always send a DM, even if installed from a group
+- **Telegram**: use `chat_id` for DMs; for groups, ask the user for their personal numeric Telegram ID
+- **Discord**: ask the user for their DM channel ID
 
-### 执行安装步骤
+### Determine notification language (LOCALE)
 
-**Step 1：备份当前配置文件（安装前保护）**
+Detect the language the user is communicating in during this conversation:
+- User is writing in Chinese → `LOCALE=zh`
+- User is writing in English → `LOCALE=en`
+- Language is unclear or mixed → ask the user: "Should notifications be sent in Chinese or English?"
+
+### Installation steps
+
+**Step 1 — Back up current config**
 ```bash
 TIMESTAMP_DIR="$HOME/.openclaw/config-backups"
 mkdir -p "$TIMESTAMP_DIR"
 cp "$HOME/.openclaw/openclaw.json" \
    "$TIMESTAMP_DIR/openclaw.json.$(date +%Y%m%d-%H%M%S).preinstall"
-echo "备份完成：$(ls -t $TIMESTAMP_DIR | head -1)"
+echo "Backup created: $(ls -t $TIMESTAMP_DIR | head -1)"
 ```
 
-**Step 2：下载文件**
+**Step 2 — Download skill files**
 ```bash
 SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 mkdir -p "$SKILL_DIR"
 BASE_URL="https://raw.githubusercontent.com/Dios-Man/gateway-guardian/main"
-for f in config-lib.sh config-watcher.sh gateway-recovery.sh pre-stop.sh SKILL.md; do
+for f in config-lib.sh config-watcher.sh gateway-recovery.sh pre-stop.sh; do
     curl -fsSL "$BASE_URL/$f" -o "$SKILL_DIR/$f"
 done
 ```
 
-**Step 3：生成 guardian.conf（兜底通知配置）**
+**Step 3 — Write guardian.conf**
 ```bash
+SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 cat > "$SKILL_DIR/guardian.conf" << EOF
-FALLBACK_CHANNEL={检测到的 channel}
-FALLBACK_TARGET={确定的 fallback target}
+FALLBACK_CHANNEL={detected channel}
+FALLBACK_TARGET={determined fallback target}
+LOCALE={zh or en}
 EOF
 ```
 
-**Step 4：赋予执行权限**
+**Step 4 — Set execute permissions**
 ```bash
+SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 chmod +x "$SKILL_DIR/config-watcher.sh"
 chmod +x "$SKILL_DIR/gateway-recovery.sh"
 chmod +x "$SKILL_DIR/pre-stop.sh"
 ```
 
-**Step 5：注册 config-watcher systemd 服务**
+**Step 5 — Register config-watcher service**
 ```bash
 SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 cat > ~/.config/systemd/user/openclaw-config-watcher.service << EOF
@@ -94,12 +113,12 @@ WantedBy=default.target
 EOF
 ```
 
-**Step 6：注册 gateway-recovery systemd 服务**
+**Step 6 — Register gateway-recovery service**
 ```bash
 SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 cat > ~/.config/systemd/user/openclaw-recovery.service << EOF
 [Unit]
-Description=OpenClaw Gateway Guardian - Gateway Recovery
+Description=OpenClaw Gateway Guardian - Crash Recovery
 After=network.target
 
 [Service]
@@ -108,7 +127,7 @@ ExecStart=/bin/bash $SKILL_DIR/gateway-recovery.sh
 EOF
 ```
 
-**Step 7：注册 OnFailure drop-in + ExecStopPost 钩子**
+**Step 7 — Register OnFailure drop-in and ExecStopPost hook**
 ```bash
 SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 mkdir -p ~/.config/systemd/user/openclaw-gateway.service.d/
@@ -123,49 +142,40 @@ ExecStopPost=/bin/bash $SKILL_DIR/pre-stop.sh
 EOF
 ```
 
-**Step 8：启动服务**
+**Step 8 — Start services**
 ```bash
 systemctl --user daemon-reload
 systemctl --user enable openclaw-config-watcher.service
 systemctl --user start openclaw-config-watcher.service
 ```
 
-**Step 9：验证安装**
+**Step 9 — Verify installation**
 ```bash
-systemctl --user status openclaw-config-watcher.service
+systemctl --user is-active openclaw-config-watcher.service
 cat ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
 tail -5 /tmp/config-watcher.log
 ```
 
-**Step 10：回复用户安装结果**，格式如下：
+**Step 10 — Report result to user**
+
+Reply with a summary in the user's language (match LOCALE):
 
 ---
-✅ **Gateway Guardian 安装完成**
+✅ **Gateway Guardian installed**
 
-🔔 通知渠道：{channel}（兜底目标：{FALLBACK_TARGET}）
-📋 服务状态：{systemctl status 输出中的 Active 行}
-📝 日志路径：`/tmp/config-watcher.log`
+🔔 Notification channel: {channel} (fallback target: {FALLBACK_TARGET})
+🌐 Notification language: {zh | en}
+📋 Service status: {Active line from systemctl output}
+📝 Log: `/tmp/config-watcher.log`
 
-**如果安装后出现异常，一键还原：**
-```bash
-# 卸载 Gateway Guardian（完整移除所有服务和钩子）
-systemctl --user stop openclaw-config-watcher.service
-systemctl --user disable openclaw-config-watcher.service
-rm -f ~/.config/systemd/user/openclaw-config-watcher.service
-rm -f ~/.config/systemd/user/openclaw-recovery.service
-rm -f ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
-systemctl --user daemon-reload
-systemctl --user reset-failed openclaw-gateway.service 2>/dev/null
-```
-
-或者直接告诉我："卸载 gateway-guardian"，我会自动执行。
+To uninstall, tell me: "uninstall gateway-guardian" / "卸载 gateway-guardian"
 ---
 
 ---
 
-## 状态检查（AI 执行）
+## Status Check (AI-executed)
 
-用户说"检查 gateway-guardian 状态"、"guardian 运行正常吗"等：
+When the user asks for status:
 
 ```bash
 systemctl --user status openclaw-config-watcher.service
@@ -173,31 +183,38 @@ tail -10 /tmp/config-watcher.log
 ls -lt ~/.openclaw/config-backups/ | head -5
 ```
 
-汇报：服务状态、最近日志、备份数量。
+Report: service active/inactive, recent log lines, number of config backups on hand.
 
 ---
 
-## 卸载流程（AI 执行）
+## Uninstall (AI-executed)
 
-用户说"卸载 gateway-guardian"、"uninstall gateway-guardian"等：
+When the user asks to uninstall:
 
 ```bash
 systemctl --user stop openclaw-config-watcher.service
 systemctl --user disable openclaw-config-watcher.service
 rm -f ~/.config/systemd/user/openclaw-config-watcher.service
-rm -f ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
 rm -f ~/.config/systemd/user/openclaw-recovery.service
+rm -f ~/.config/systemd/user/openclaw-gateway.service.d/recovery.conf
 systemctl --user daemon-reload
 systemctl --user reset-failed openclaw-gateway.service 2>/dev/null
-# 可选：保留备份文件，或询问用户是否删除
-# rm -rf ~/.openclaw/config-backups/
 ```
+
+Ask the user whether to also delete config backups:
+```bash
+# Only run if user confirms
+rm -rf ~/.openclaw/config-backups/
+```
+
+Confirm removal is complete.
 
 ---
 
-## 注意事项
-- 本 skill 只能通过 OpenClaw 安装，不提供手动安装脚本
-- 安装时必须有消息上下文（不支持控制台安装）
-- guardian.conf 包含兜底通知配置，属于用户私有数据，不上传 GitHub
-- .bak* 文件由 OpenClaw 原生管理，本 skill 只读不写
-- 通知渠道动态检测：每次通知时自动查询最近活跃 session，无需手动绑定
+## Notes
+
+- This skill must be installed via an OpenClaw AI agent — no manual install script is provided.
+- Installation requires an active message context (in-conversation metadata is used for notification setup).
+- `guardian.conf` contains private notification config and is never uploaded to GitHub.
+- Config backups in `~/.openclaw/config-backups/` are retained across uninstalls unless the user explicitly requests deletion.
+- Notifications use dynamic session detection at runtime; `guardian.conf` is only a fallback.

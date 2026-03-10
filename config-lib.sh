@@ -1,11 +1,11 @@
 #!/bin/bash
-# config-lib.sh — OpenClaw Gateway Guardian 共享库
-# 不可单独执行，由 config-watcher.sh / gateway-recovery.sh / pre-stop.sh source
+# config-lib.sh — OpenClaw Gateway Config Guardian shared library
+# Not executable directly. Source'd by config-watcher.sh / gateway-recovery.sh / pre-stop.sh
 
-# 确保 openclaw CLI 可用（systemd 环境 PATH 不完整）
+# Ensure openclaw CLI is available (systemd environment has limited PATH)
 export PATH="$HOME/.npm-global/bin:/usr/local/bin:$PATH"
 
-# ── 路径常量 ──────────────────────────────────────────────────
+# ── Path constants ─────────────────────────────────────────────────────────────
 CONFIG="$HOME/.openclaw/openclaw.json"
 BACKUP_DIR="$HOME/.openclaw"
 TIMESTAMP_DIR="$HOME/.openclaw/config-backups"
@@ -16,28 +16,114 @@ MAX_BACKUPS=10
 MAX_BROKEN=5
 GATEWAY_PORT=18789
 
-# ── 兜底通知配置（由 install 生成，动态检测失败时使用）──────
+# ── Load guardian.conf (fallback notification config + LOCALE) ─────────────────
 _GUARDIAN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$_GUARDIAN_LIB_DIR/guardian.conf" ] && source "$_GUARDIAN_LIB_DIR/guardian.conf"
-# guardian.conf 内容示例：
+# guardian.conf expected fields:
 #   FALLBACK_CHANNEL=feishu
 #   FALLBACK_TARGET=user:ou_xxx
+#   LOCALE=zh   # or: en
 
-# ── 工具函数 ──────────────────────────────────────────────────
+# ── Language strings ───────────────────────────────────────────────────────────
+LOCALE="${LOCALE:-zh}"
+
+if [ "$LOCALE" = "en" ]; then
+    _MSG_FORWARD_HINT="💬 If this alert was triggered by my own action, please forward this message to me directly — no explanation needed. I'll understand the context and continue automatically."
+    _MSG_MANUAL_ACTION="Please log into the server to handle this manually."
+    _MSG_MEMORY_HEADER="🚨 Gateway Guardian Event"
+    _MSG_TIME="Time"
+    _MSG_EVENT="Event"
+    _MSG_REASON="Reason"
+    _MSG_LOG="Recent log"
+    _MSG_ROLLED_BACK_TO="Rolled back to"
+
+    _MSG_SUCCESS_TITLE="✅ OpenClaw Gateway Guardian"
+    _MSG_SUCCESS_EVENT="Config file corrupted — auto-rolled back and recovered"
+
+    _MSG_URGENT_TITLE="🚨 OpenClaw Gateway Guardian — Manual Action Required"
+    _MSG_URGENT_NO_RESTART_EVENT="Config corrupted, rolled back, but gateway failed to restart"
+    _MSG_URGENT_NO_RESTART_REASON="Gateway still unresponsive after rollback (30s timeout)"
+    _MSG_URGENT_NOOP_EVENT="Config corrupted — all backups are invalid"
+    _MSG_URGENT_NOOP_REASON="No usable backup found; cannot auto-recover"
+
+    _MSG_RECOVERY_SUCCESS_TITLE="✅ OpenClaw Gateway Guardian — Gateway Recovered"
+    _MSG_RECOVERY_SUCCESS_EVENT="Gateway crashed and was automatically restarted"
+    _MSG_RECOVERY_FAIL_TITLE="🚨 OpenClaw Gateway Guardian — Gateway Recovery Failed"
+    _MSG_RECOVERY_FAIL_EVENT="Gateway crashed and could not be restarted automatically"
+    _MSG_RECOVERY_FAIL_REASON="Gateway still unresponsive after restart attempts"
+
+    _MSG_RESTART_STARTING="⚙️ Gateway is restarting, please wait..."
+    _MSG_RESTART_DONE="✅ Gateway recovered. You can continue your conversation."
+    _MSG_HUMAN_FIXED="✅ Gateway appears to have recovered. If you need to continue, please send me a message."
+
+    _MSG_RESULT="Result"
+    _MSG_ACTION="Action"
+    _MSG_GATEWAY_LOG="Gateway log"
+    _MSG_RECOVERY_WITH_ROLLBACK="Gateway crashed + config corrupted — auto-rolled back and restarted"
+    _MSG_RECOVERY_NO_ROLLBACK="Gateway crashed (config healthy) — auto-restarted"
+    _MSG_RECOVERY_RESET_ACTION="Reset failed count + restart gateway"
+    _MSG_GATEWAY_BACK="Gateway is back online"
+    _MSG_MEM_CRASH_NO_BACKUP="Gateway crashed, config corrupted with no valid backup"
+    _MSG_MEM_RECOVERY_FAIL="Gateway crashed, auto-recovery failed"
+    _MSG_MEM_CANNOT_RECOVER="Cannot auto-recover — manual action required"
+    _MSG_MEM_TIMEOUT="Unresponsive after timeout — manual action required"
+    _MSG_LATEST_BACKUP="latest backup"
+else
+    _MSG_FORWARD_HINT="💬 如果此次告警是由我的操作引起的，请将这条消息直接转发给我，无需添加任何说明，我会自动了解情况并继续处理。"
+    _MSG_MANUAL_ACTION="请登录服务器手动处理。"
+    _MSG_MEMORY_HEADER="🚨 网关守护事件"
+    _MSG_TIME="时间"
+    _MSG_EVENT="事件"
+    _MSG_REASON="原因"
+    _MSG_LOG="关键日志"
+    _MSG_ROLLED_BACK_TO="回滚至"
+
+    _MSG_SUCCESS_TITLE="✅ OpenClaw 网关守护"
+    _MSG_SUCCESS_EVENT="配置文件损坏，已自动回滚并恢复"
+
+    _MSG_URGENT_TITLE="🚨 OpenClaw 网关守护 - 需要人工处理"
+    _MSG_URGENT_NO_RESTART_EVENT="配置文件损坏，已回滚，但网关无法重启"
+    _MSG_URGENT_NO_RESTART_REASON="回滚后网关仍无响应（30s 超时）"
+    _MSG_URGENT_NOOP_EVENT="配置文件损坏，且所有备份均无效"
+    _MSG_URGENT_NOOP_REASON="无可用备份，无法自动恢复"
+
+    _MSG_RECOVERY_SUCCESS_TITLE="✅ OpenClaw 网关守护 - 网关已恢复"
+    _MSG_RECOVERY_SUCCESS_EVENT="网关崩溃后已自动重启恢复"
+    _MSG_RECOVERY_FAIL_TITLE="🚨 OpenClaw 网关守护 - 需要人工处理"
+    _MSG_RECOVERY_FAIL_EVENT="网关崩溃，自动恢复失败"
+    _MSG_RECOVERY_FAIL_REASON="多次重启后网关仍无响应"
+
+    _MSG_RESTART_STARTING="⚙️ 网关正在重启中，请稍候..."
+    _MSG_RESTART_DONE="✅ 已恢复，请发消息继续对话。"
+    _MSG_HUMAN_FIXED="✅ 网关似乎已恢复正常。如需继续，请发消息给我。"
+
+    _MSG_RESULT="结果"
+    _MSG_ACTION="处置"
+    _MSG_GATEWAY_LOG="网关日志"
+    _MSG_RECOVERY_WITH_ROLLBACK="网关崩溃，检测到配置损坏，已自动回滚并重启"
+    _MSG_RECOVERY_NO_ROLLBACK="网关崩溃（配置正常），已自动重启"
+    _MSG_RECOVERY_RESET_ACTION="重置失败记录 + 重启网关"
+    _MSG_GATEWAY_BACK="网关已恢复正常运行"
+    _MSG_MEM_CRASH_NO_BACKUP="网关崩溃，配置损坏且无合法备份"
+    _MSG_MEM_RECOVERY_FAIL="网关崩溃，自动恢复失败"
+    _MSG_MEM_CANNOT_RECOVER="无法自动恢复，需要人工处理"
+    _MSG_MEM_TIMEOUT="超时仍无响应，需要人工处理"
+    _MSG_LATEST_BACKUP="最近备份"
+fi
+
+# ── Utility ────────────────────────────────────────────────────────────────────
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG"; }
 
-# ── 动态 Session 检测 ─────────────────────────────────────────
-# 查询最近活跃的对话 session，优先 direct，兜底 guardian.conf
+# ── Dynamic session detection ──────────────────────────────────────────────────
+# Finds the most recently active direct session; falls back to guardian.conf
 detect_session() {
-    local session_key kind id
+    local session_key
     session_key=$(timeout 10 openclaw sessions --json 2>/dev/null | python3 -c "
 import json, sys
 try:
     data = json.load(sys.stdin)
     sessions = data.get('sessions', [])
-    # 排除心跳 session（key 以 :main 结尾）
     real = [s for s in sessions if not s['key'].endswith(':main')]
-    # 优先 direct，再 group
     direct = [s for s in real if ':direct:' in s['key']]
     target = direct if direct else real
     target.sort(key=lambda x: x.get('updatedAt', 0), reverse=True)
@@ -48,81 +134,75 @@ except Exception:
 " 2>/dev/null)
 
     if [ -z "$session_key" ]; then
-        # 兜底：guardian.conf
         DETECTED_CHANNEL="$FALLBACK_CHANNEL"
         DETECTED_TARGET="$FALLBACK_TARGET"
         return
     fi
 
-    # 解析 session key: agent:main:feishu:direct:ou_xxx
-    local agent channel kind id
-    IFS=':' read -r _ agent channel kind id <<< "$session_key"
+    local channel kind id
+    IFS=':' read -r _ _ channel kind id <<< "$session_key"
     DETECTED_CHANNEL="$channel"
     [ "$kind" = "direct" ] && DETECTED_TARGET="user:$id" || DETECTED_TARGET="chat:$id"
 }
 
-# ── 通知函数 ──────────────────────────────────────────────────
-# 内部发送（detect_session 须已调用，DETECTED_CHANNEL/TARGET 已设置）
+# ── Notification functions ─────────────────────────────────────────────────────
 _send_notify() {
     local msg="$1"
-    [ -z "$DETECTED_CHANNEL" ] && { log "⚠️  通知未配置，跳过"; return; }
+    [ -z "$DETECTED_CHANNEL" ] && { log "⚠️  No notification channel configured, skipping"; return; }
     timeout 30 openclaw message send \
         --channel "$DETECTED_CHANNEL" \
         --target  "$DETECTED_TARGET" \
-        --message "$msg" >> "$LOG" 2>&1 || log "⚠️  通知发送失败"
+        --message "$msg" >> "$LOG" 2>&1 || log "⚠️  Notification send failed"
 }
 
-# 成功通知（含"转发给我"提示）
+# Success notification — includes "forward to me" hint
 notify_success() {
-    local title="$1"  # 第一行标题
-    local body="$2"   # 中间正文（事件/处置/日志）
+    local title="$1"
+    local body="$2"
     detect_session
-    local msg="${title}
+    _send_notify "${title}
 
 ${body}
 
-💬 如果此次告警是由我的操作引起的，请将这条消息直接转发给我，无需添加任何说明，我会自动了解情况并继续处理。"
-    _send_notify "$msg"
+${_MSG_FORWARD_HINT}"
 }
 
-# 紧急通知（需人工处理，不含转发提示）
+# Urgent notification — requires manual intervention, no forward hint
 notify_urgent() {
     local title="$1"
     local body="$2"
     detect_session
-    local msg="${title}
+    _send_notify "${title}
 
 ${body}
 
-请登录服务器手动处理。"
-    _send_notify "$msg"
+${_MSG_MANUAL_ACTION}"
 }
 
-# 状态通知（纯消息，无附加提示）
+# Status notification — plain message, no trailing hint
 notify_status() {
     detect_session
     _send_notify "$1"
 }
 
-# ── 写入今日内存日志 ─────────────────────────────────────────
+# ── Memory log ────────────────────────────────────────────────────────────────
 write_to_memory() {
     local content="$1"
     mkdir -p "$MEMORY_DIR"
     local file="$MEMORY_DIR/$(date +%Y-%m-%d).md"
     echo "" >> "$file"
-    echo "## 🚨 网关守护事件 ($(date '+%H:%M'))" >> "$file"
+    echo "## ${_MSG_MEMORY_HEADER} ($(date '+%H:%M'))" >> "$file"
     echo "$content" >> "$file"
 }
 
-# 从日志文件中提取最近 N 条结构化日志（过滤插件加载噪音）
+# Extract recent structured log lines (filters out plugin-load noise)
 tail_log() {
     local logfile="$1" n="${2:-8}"
     grep "^\[20" "$logfile" 2>/dev/null | tail -n "$n"
 }
 
-# 从 journalctl 中提取网关错误信息
-# 优先：关键词匹配（error/fail/invalid/EADDRINUSE 等）
-# 兜底：最后 5 行
+# Extract gateway error lines from journalctl
+# Priority: keyword match; fallback: last 5 systemd lines
 gateway_journal_errors() {
     local lines
     lines=$(journalctl --user -u openclaw-gateway.service \
@@ -134,19 +214,16 @@ gateway_journal_errors() {
     if [ -n "$filtered" ]; then
         echo "$filtered"
     else
-        # 无匹配时只取 systemd 服务管理行（避免泄露用户消息内容）
         echo "$lines" | grep -E "systemd\[|Started|Stopped|Failed|Activating|Deactivating|exited|status=" | tail -5
     fi
 }
 
-# ── 验证函数（三关）─────────────────────────────────────────
-# 用法: validate_file <path>
-# 成功返回 0，失败返回 1 并输出原因
+# ── Validation (3-pass) ───────────────────────────────────────────────────────
 validate_file() {
     local file="$1" result exit_code
     local tmp="$CONFIG.validate.tmp"
 
-    # 第一+二关：JSON 语法 + 关键字段（单次 python3 调用）
+    # Pass 1+2: JSON syntax + required fields (single python3 call)
     result=$(python3 -c "
 import json, sys
 try:
@@ -158,8 +235,7 @@ except Exception as e:
     print('JSON error:', e); sys.exit(1)
 " "$file" 2>&1) || { echo "$result"; return 1; }
 
-    # 第三关：openclaw schema 验证
-    # 若 file 就是 CONFIG 本身，直接验证；否则临时替换
+    # Pass 3: openclaw schema validation
     if [ "$file" = "$CONFIG" ]; then
         result=$(timeout 30 openclaw config validate 2>&1)
         exit_code=$?
@@ -180,7 +256,7 @@ except Exception as e:
     return 0
 }
 
-# ── 备份函数 ──────────────────────────────────────────────────
+# ── Backup ────────────────────────────────────────────────────────────────────
 save_backup() {
     local bak count
     mkdir -p "$TIMESTAMP_DIR"
@@ -191,7 +267,7 @@ save_backup() {
         ls -t "$TIMESTAMP_DIR/" | tail -n +$((MAX_BACKUPS + 1)) | \
             while IFS= read -r f; do rm -f "$TIMESTAMP_DIR/$f"; done
     fi
-    log "💾 备份已保存：$(basename "$bak")"
+    log "💾 Backup saved: $(basename "$bak")"
 }
 
 cleanup_broken() {
@@ -200,15 +276,15 @@ cleanup_broken() {
         while IFS= read -r f; do rm -f "$f"; done
 }
 
-# ── 回滚函数 ──────────────────────────────────────────────────
-# 成功回滚后，将实际使用的备份名写入此变量（供 handle_change 显示）
+# ── Rollback ──────────────────────────────────────────────────────────────────
+# On success, writes the backup name used to ROLLBACK_USED_BACKUP
 ROLLBACK_USED_BACKUP=""
 
 rollback() {
     local result bak
     ROLLBACK_USED_BACKUP=""
 
-    # 优先：时间戳备份（最新 → 最旧）
+    # Try timestamp backups newest-first
     while IFS= read -r f; do
         bak="$TIMESTAMP_DIR/$f"
         result=$(validate_file "$bak" 2>&1)
@@ -216,13 +292,13 @@ rollback() {
             cp "$CONFIG" "$CONFIG.broken.$(date +%Y%m%d-%H%M%S)"
             cp "$bak" "$CONFIG"
             ROLLBACK_USED_BACKUP="$f"
-            log "✅ 已回滚到时间戳备份：$f"
+            log "✅ Rolled back to timestamp backup: $f"
             cleanup_broken; return 0
         fi
-        log "⏭️  $f 无效（$result），跳过"
+        log "⏭️  $f invalid ($result), skipping"
     done < <(ls -t "$TIMESTAMP_DIR/" 2>/dev/null)
 
-    # 兜底：openclaw 原生备份
+    # Fallback: openclaw native backups
     for bak in "$BACKUP_DIR/openclaw.json.bak" \
                "$BACKUP_DIR/openclaw.json.bak.1" \
                "$BACKUP_DIR/openclaw.json.bak.2" \
@@ -234,36 +310,34 @@ rollback() {
             cp "$CONFIG" "$CONFIG.broken.$(date +%Y%m%d-%H%M%S)"
             cp "$bak" "$CONFIG"
             ROLLBACK_USED_BACKUP="$(basename "$bak")"
-            log "✅ 已回滚到原生备份：$(basename "$bak")"
+            log "✅ Rolled back to native backup: $(basename "$bak")"
             cleanup_broken; return 0
         fi
-        log "⏭️  $(basename "$bak") 无效（$result），跳过"
+        log "⏭️  $(basename "$bak") invalid ($result), skipping"
     done
 
-    log "❌ 所有备份均无效，无法回滚"
+    log "❌ All backups invalid — rollback failed"
     return 1
 }
 
-# ── 核心处理逻辑 ──────────────────────────────────────────────
+# ── Core handler ──────────────────────────────────────────────────────────────
 handle_change() {
     local result
     result=$(validate_file "$CONFIG" 2>&1)
     if [ $? -eq 0 ]; then
-        log "✅ 配置合法，保存备份"
+        log "✅ Config valid, saving backup"
         save_backup
         return
     fi
 
-    log "❌ 配置无效：$result，开始回滚..."
+    log "❌ Config invalid: $result — starting rollback..."
     if rollback; then
-        log "🔄 回滚完成，检查网关状态..."
+        log "🔄 Rollback complete, checking gateway..."
 
-        # 检查网关是否仍在运行（若宕机则尝试重启）
         if nc -z 127.0.0.1 $GATEWAY_PORT 2>/dev/null; then
-            log "✅ 网关运行正常"
+            log "✅ Gateway is running"
         else
-            log "⚠️  网关未响应，尝试重启..."
-            # 用 "watcher" 标记，与 pre-stop.sh 的 "managed" 区分
+            log "⚠️  Gateway not responding, attempting restart..."
             echo "watcher" > "$MANAGED_RESTART_FLAG"
             systemctl --user restart openclaw-gateway.service 2>/dev/null
             local elapsed=0
@@ -273,35 +347,34 @@ handle_change() {
             done
             if ! nc -z 127.0.0.1 $GATEWAY_PORT 2>/dev/null; then
                 rm -f "$MANAGED_RESTART_FLAG"
-                log "❌ 网关重启失败"
-                notify_urgent "🚨 OpenClaw 网关守护 - 需要人工处理" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：配置文件损坏，已回滚，但网关无法重启
-❌ 原因：回滚后网关仍无响应（30s 超时）
-📝 最近日志：
+                log "❌ Gateway restart failed"
+                notify_urgent "$_MSG_URGENT_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_URGENT_NO_RESTART_EVENT
+❌ $_MSG_REASON: $_MSG_URGENT_NO_RESTART_REASON
+📝 $_MSG_LOG:
 $(tail_log "$LOG")"
                 return
             fi
-            # flag 由 monitor 删除，避免 race condition
         fi
 
-        notify_success "✅ OpenClaw 网关守护" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：配置文件损坏，已自动回滚并恢复
-🔧 回滚至：${ROLLBACK_USED_BACKUP:-最近备份}
-📝 关键日志：
+        notify_success "$_MSG_SUCCESS_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_SUCCESS_EVENT
+🔧 $_MSG_ROLLED_BACK_TO: ${ROLLBACK_USED_BACKUP:-$_MSG_LATEST_BACKUP}
+📝 $_MSG_LOG:
 $(tail_log "$LOG" 5)"
 
     else
-        log "🚨 回滚失败，需要人工处理"
-        notify_urgent "🚨 OpenClaw 网关守护 - 需要人工处理" \
-"⏰ 时间：$(date '+%Y-%m-%d %H:%M')
-📋 事件：配置文件损坏，且所有备份均无效
-❌ 原因：无可用备份，无法自动恢复
-📝 最近日志：
+        log "🚨 Rollback failed — manual intervention required"
+        notify_urgent "$_MSG_URGENT_TITLE" \
+"⏰ $_MSG_TIME: $(date '+%Y-%m-%d %H:%M')
+📋 $_MSG_EVENT: $_MSG_URGENT_NOOP_EVENT
+❌ $_MSG_REASON: $_MSG_URGENT_NOOP_REASON
+📝 $_MSG_LOG:
 $(tail_log "$LOG")"
-        write_to_memory "- 事件：配置文件损坏，所有备份均无效
-- 结果：❌ 无法自动恢复，需要人工处理
-- 日志：$LOG"
+        write_to_memory "- $_MSG_EVENT: $_MSG_URGENT_NOOP_EVENT
+- $_MSG_RESULT: ❌ $_MSG_URGENT_NOOP_REASON
+- $_MSG_LOG: $LOG"
     fi
 }
