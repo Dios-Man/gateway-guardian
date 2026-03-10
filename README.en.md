@@ -1,6 +1,6 @@
 # Gateway Guardian
 
-<p align="center"><a href="README.md">中文</a></p>
+<p align="center"><a href="https://github.com/Dios-Man/gateway-guardian/blob/main/README.md">中文</a>丨English</p>
 
 > An OpenClaw skill that automatically rolls back corrupted configs, restarts a crashed gateway, and notifies you the moment something goes wrong.
 

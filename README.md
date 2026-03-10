@@ -1,6 +1,6 @@
 # Gateway Guardian
 
-<p align="center"><a href="README.en.md">English</a></p>
+<p align="center">中文丨<a href="https://github.com/Dios-Man/gateway-guardian/blob/main/README.en.md">English</a></p>
 
 > 一个给 OpenClaw 用户的网关防护 Skill。  
 > 配置写坏了自动回滚，网关崩溃了自动重启，出事第一时间通知你。
