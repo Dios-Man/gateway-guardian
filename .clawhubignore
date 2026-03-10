@@ -1,0 +1,6 @@
+# Only SKILL.md is published to ClawHub.
+# Scripts are fetched from GitHub at install time (see SKILL.md Step 2).
+*.sh
+README.md
+README.en.md
+guardian.conf
