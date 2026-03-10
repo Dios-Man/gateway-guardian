@@ -129,14 +129,14 @@ Mar 09 22:10:06 node[xxx]: Error: EADDRINUSE: port 18789 already in use
 满足条件后，将以下链接发给你的 OpenClaw，并说"帮我安装"：
 
 ```
-https://github.com/Dios-Man/gateway-guardian
+https://raw.githubusercontent.com/Dios-Man/gateway-guardian/main/SKILL.md
 ```
 
 OpenClaw 会自动检测你的消息渠道和用户 ID，完成全部配置，并根据你的对话语言设置通知语言。
 
 **安装过程：**
 1. 备份当前配置（安装前快照）
-2. 下载脚本文件
+2. 从 GitHub 拉取脚本文件
 3. 注册 `openclaw-config-watcher` 服务（常驻监听配置文件）
 4. 注册 `openclaw-recovery` 服务（网关崩溃时 OnFailure 触发）
 5. 为网关服务添加 `ExecStopPost` 钩子（停止前发送通知）

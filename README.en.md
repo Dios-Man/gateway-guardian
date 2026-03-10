@@ -126,14 +126,14 @@ Please log into the server to handle this manually.
 Once the requirements are met, send the following link to your OpenClaw agent and say "install this":
 
 ```
-https://github.com/Dios-Man/gateway-guardian
+https://raw.githubusercontent.com/Dios-Man/gateway-guardian/main/SKILL.md
 ```
 
 OpenClaw will automatically detect your messaging channel and user ID, and configure everything. It will also set the notification language based on the language you're using in the conversation.
 
 **What the installation does:**
 1. Backs up your current config (pre-install snapshot)
-2. Downloads the script files
+2. Pulls script files from the GitHub repository
 3. Registers the `openclaw-config-watcher` service (persistent config file monitor)
 4. Registers the `openclaw-recovery` service (triggered on gateway crash via OnFailure)
 5. Adds an `ExecStopPost` hook to the gateway service (sends notification before stop)
