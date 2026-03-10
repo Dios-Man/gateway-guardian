@@ -2,6 +2,12 @@
 
 <p align="center">中文丨<a href="https://github.com/Dios-Man/gateway-guardian/blob/main/README.en.md">English</a></p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/platform-Linux-blue.svg" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/OpenClaw-Skill-brightgreen.svg" alt="OpenClaw Skill">
+</p>
+
 > 一个给 OpenClaw 用户的网关防护 Skill。  
 > 配置写坏了自动回滚，网关崩溃了自动重启，出事第一时间通知你。
 
@@ -115,18 +121,18 @@ Mar 09 22:10:06 node[xxx]: Error: EADDRINUSE: port 18789 already in use
 
 ## 安装
 
-将以下链接发给你的 OpenClaw，并说"帮我安装"：
+**前置条件：**
+- Linux 系统，`systemd --user` 可用
+- OpenClaw Gateway 正在运行
+- `inotify-tools`（安装时自动检测并安装，或手动：`sudo apt-get install -y inotify-tools`）
+
+满足条件后，将以下链接发给你的 OpenClaw，并说"帮我安装"：
 
 ```
 https://github.com/Dios-Man/gateway-guardian
 ```
 
 OpenClaw 会自动检测你的消息渠道和用户 ID，完成全部配置，并根据你的对话语言设置通知语言。
-
-**前置条件：**
-- Linux 系统，`systemd --user` 可用
-- `inotify-tools`（安装时自动检测并安装，或手动：`sudo apt-get install -y inotify-tools`）
-- OpenClaw Gateway 正在运行
 
 **安装过程：**
 1. 备份当前配置（安装前快照）
@@ -194,6 +200,12 @@ ls -lt ~/.openclaw/config-backups/ # 时间戳备份列表
 ## 技术架构
 
 ```
+config-watcher 服务启动
+    ↓
+启动检查：验证当前配置
+    ├─ 验证通过 → 保存备份
+    └─ 验证失败 → 回滚 → 通知用户
+
 openclaw.json 发生变化
     ↓
 config-watcher（inotifywait 常驻）

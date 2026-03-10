@@ -2,6 +2,12 @@
 
 <p align="center"><a href="https://github.com/Dios-Man/gateway-guardian/blob/main/README.md">中文</a>丨English</p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+  <img src="https://img.shields.io/badge/platform-Linux-blue.svg" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/OpenClaw-Skill-brightgreen.svg" alt="OpenClaw Skill">
+</p>
+
 > An OpenClaw skill that automatically rolls back corrupted configs, restarts a crashed gateway, and notifies you the moment something goes wrong.
 
 ---
@@ -112,18 +118,18 @@ Please log into the server to handle this manually.
 
 ## Installation
 
-Send the following link to your OpenClaw agent and say "install this":
+**Requirements:**
+- Linux with `systemd --user` available
+- OpenClaw Gateway running
+- `inotify-tools` (auto-installed if missing, or manually: `sudo apt-get install -y inotify-tools`)
+
+Once the requirements are met, send the following link to your OpenClaw agent and say "install this":
 
 ```
 https://github.com/Dios-Man/gateway-guardian
 ```
 
 OpenClaw will automatically detect your messaging channel and user ID, and configure everything. It will also set the notification language based on the language you're using in the conversation.
-
-**Requirements:**
-- Linux with `systemd --user` available
-- `inotify-tools` (auto-installed if missing, or manually: `sudo apt-get install -y inotify-tools`)
-- OpenClaw Gateway running
 
 **What the installation does:**
 1. Backs up your current config (pre-install snapshot)
@@ -191,6 +197,12 @@ It only stores your messaging channel and user ID (fallback config) — no API k
 ## Architecture
 
 ```
+config-watcher service starts
+    ↓
+Startup check: validate current config
+    ├─ Valid → save backup
+    └─ Invalid → rollback → notify user
+
 openclaw.json changes
     ↓
 config-watcher (inotifywait, persistent)
