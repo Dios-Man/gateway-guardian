@@ -82,6 +82,8 @@ SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 mkdir -p "$SKILL_DIR"
 BASE_URL="https://raw.githubusercontent.com/Dios-Man/gateway-guardian/main"
 for f in config-lib.sh config-watcher.sh gateway-recovery.sh pre-stop.sh; do
+    # Skip if file already present (e.g. installed via clawhub install)
+    [ -f "$SKILL_DIR/$f" ] && continue
     curl -fsSL "$BASE_URL/$f" -o "$SKILL_DIR/$f"
 done
 ```
