@@ -2,6 +2,27 @@
 
 All notable changes to gateway-guardian are documented here.
 
+## [1.4.1] - 2026-03-15
+
+### Fixed
+
+- **Upgrade notification race condition** — previously required manually writing
+  `echo "upgrade" > /tmp/guardian-managed-restart` before upgrading, which was
+  unreliable and easily lost to timing issues
+- **pre-stop.sh**: when maintenance mode is active during a clean gateway stop,
+  now writes `upgrade` flag instead of sending the generic "restarting" notification
+- **monitor**: upgrade flag path now correctly triggers `_MSG_UPGRADE_DETECTED`
+  ("检测到 OpenClaw 升级 — 网关已自动重启")
+
+### New upgrade workflow (no manual flag needed)
+```bash
+touch ~/.openclaw/.guardian-maintenance   # pause monitoring
+npm install -g openclaw@latest            # upgrade
+rm ~/.openclaw/.guardian-maintenance      # resume → upgrade notification sent automatically
+```
+
+---
+
 ## [1.4.0] - 2026-03-15
 
 ### Added
