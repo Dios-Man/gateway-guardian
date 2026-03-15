@@ -185,6 +185,27 @@ To uninstall, tell me: "uninstall gateway-guardian" / "卸载 gateway-guardian"
 
 ---
 
+## Maintenance Mode
+
+Guardian can be paused during planned operations (upgrades, config edits) using a file-based switch:
+
+```bash
+# Pause monitoring (e.g. before upgrade)
+touch ~/.openclaw/.guardian-maintenance
+
+# Resume monitoring
+rm ~/.openclaw/.guardian-maintenance
+```
+
+Guardian will send a Feishu notification when maintenance mode turns on/off.
+
+For upgrades specifically, set the managed restart flag type to `upgrade` so the recovery notification reflects it correctly:
+```bash
+echo "upgrade" > /tmp/guardian-managed-restart
+```
+
+---
+
 ## Status Check (AI-executed)
 
 When the user asks for status:

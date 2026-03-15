@@ -12,6 +12,7 @@ TIMESTAMP_DIR="$HOME/.openclaw/config-backups"
 MEMORY_DIR="$HOME/.openclaw/workspace/memory"
 LOCK_FILE="/tmp/openclaw-config.lock"
 MANAGED_RESTART_FLAG="/tmp/guardian-managed-restart"
+MAINTENANCE_FLAG="$HOME/.openclaw/.guardian-maintenance"
 MAX_BACKUPS=10
 MAX_BROKEN=5
 GATEWAY_PORT=18789
@@ -68,6 +69,10 @@ if [ "$LOCALE" = "en" ]; then
     _MSG_MEM_CANNOT_RECOVER="Cannot auto-recover — manual action required"
     _MSG_MEM_TIMEOUT="Unresponsive after timeout — manual action required"
     _MSG_LATEST_BACKUP="latest backup"
+    _MSG_MAINTENANCE_ON="🔧 Guardian maintenance mode ON — config monitoring paused. Create this file to resume: $MAINTENANCE_FLAG (or delete it to disable)"
+    _MSG_MAINTENANCE_OFF="✅ Guardian maintenance mode OFF — config monitoring resumed"
+    _MSG_MAINTENANCE_SKIPPED="⏸️ Maintenance mode active — config change ignored (planned operation in progress)"
+    _MSG_UPGRADE_DETECTED="⚙️ OpenClaw upgrade detected — gateway restarted automatically"
 else
     _MSG_FORWARD_HINT="💬 如果此次告警是由我的操作引起的，请将这条消息直接转发给我，无需添加任何说明，我会自动了解情况并继续处理。"
     _MSG_MANUAL_ACTION="请登录服务器手动处理。"
@@ -109,6 +114,10 @@ else
     _MSG_MEM_CANNOT_RECOVER="无法自动恢复，需要人工处理"
     _MSG_MEM_TIMEOUT="超时仍无响应，需要人工处理"
     _MSG_LATEST_BACKUP="最近备份"
+    _MSG_MAINTENANCE_ON="🔧 Guardian 维护模式已开启 — 配置监控已暂停。删除此文件可恢复：$MAINTENANCE_FLAG"
+    _MSG_MAINTENANCE_OFF="✅ Guardian 维护模式已关闭 — 配置监控已恢复"
+    _MSG_MAINTENANCE_SKIPPED="⏸️ 维护模式中 — 配置变更已忽略（计划内操作进行中）"
+    _MSG_UPGRADE_DETECTED="⚙️ 检测到 OpenClaw 升级 — 网关已自动重启"
 fi
 
 # ── Utility ────────────────────────────────────────────────────────────────────
