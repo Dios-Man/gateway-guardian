@@ -187,8 +187,12 @@ To uninstall, tell me: "uninstall gateway-guardian" / "卸载 gateway-guardian"
 
 ## Upgrading OpenClaw (AI-executed)
 
-**Always use the upgrade script** — never run `npm install -g openclaw` directly.
-The script handles maintenance mode automatically, preventing missed notifications and race conditions.
+⚠️ **MANDATORY RULE — applies to ALL upgrade scenarios:**
+- User says "升级 openclaw" / "update openclaw" / "帮我升级"
+- Auto-updater cron triggers
+- Any other path that would run `npm install -g openclaw`
+
+**Always use the upgrade script. Never run `npm install -g openclaw` directly.**
 
 ```bash
 bash ~/.openclaw/workspace/skills/gateway-guardian/upgrade-openclaw.sh
