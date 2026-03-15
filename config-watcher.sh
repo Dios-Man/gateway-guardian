@@ -53,14 +53,18 @@ monitor_gateway_recovery() {
                         # recovery.sh / config-watcher already sent the notification — skip
                         log "[monitor] Managed restart ($flag_type) — skipping notification"
                     elif [ "$flag_type" = "upgrade" ]; then
-                        # Upgrade-triggered restart — send upgrade-specific notification
-                        log "[monitor] Gateway restart complete (upgrade)"
+                        # Upgrade-triggered restart (legacy flag path) — send upgrade notification
+                        log "[monitor] Gateway restart complete (upgrade flag)"
                         notify_status "$_MSG_UPGRADE_DETECTED"
                     else
                         # Planned restart complete (initiated by pre-stop.sh)
                         log "[monitor] Gateway restart complete"
                         notify_status "$_MSG_RESTART_DONE"
                     fi
+                elif [ -f "$MAINTENANCE_FLAG" ]; then
+                    # Gateway recovered while maintenance mode is active → upgrade scenario
+                    log "[monitor] Gateway recovered during maintenance — upgrade restart detected"
+                    notify_status "$_MSG_UPGRADE_DETECTED"
                 else
                     # Human-fixed or unknown recovery
                     log "[monitor] Gateway recovered (unmanaged) — sending notification"
