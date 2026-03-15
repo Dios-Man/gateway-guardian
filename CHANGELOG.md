@@ -2,6 +2,28 @@
 
 All notable changes to gateway-guardian are documented here.
 
+## [1.5.0] - 2026-03-16
+
+### Reverted
+
+- **Removed maintenance mode** (`MAINTENANCE_FLAG`, `check_maintenance()`) — introduced a new
+  failure path: if maintenance mode was left on, core config monitoring silently stopped.
+  The problem it solved (imprecise upgrade notifications) was cosmetic; the risk introduced
+  was real. Reverted to keep the guardian simple and reliable.
+- **Removed `upgrade-openclaw.sh`** — existed solely to manage maintenance mode; no longer needed.
+- **Removed upgrade flag handling** in `pre-stop.sh` and `monitor_gateway_recovery()` —
+  dead code without the maintenance mode that wrote the flag.
+- **Removed maintenance-related language strings** from `config-lib.sh`.
+- **Cleaned up SKILL.md** — removed maintenance mode and upgrade script sections.
+
+### Principle applied
+
+> "Don't let cosmetic improvements introduce breaking risks."
+> If the old behavior was merely imperfect (not broken), keep it.
+> Maintenance mode made upgrade notifications prettier but made the guardian itself fragile.
+
+---
+
 ## [1.4.3] - 2026-03-16
 
 ### Added

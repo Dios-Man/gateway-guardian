@@ -15,11 +15,6 @@ case "${SERVICE_RESULT:-}" in
     success|signal)
         if [ "$(cat "$MANAGED_RESTART_FLAG" 2>/dev/null)" = "recovery" ]; then
             log "[pre-stop] Managed restart by recovery.sh detected — skipping notification"
-        elif [ -f "$MAINTENANCE_FLAG" ]; then
-            # Maintenance mode active → this is an upgrade/planned restart
-            # Set flag to "upgrade" so monitor sends upgrade-specific notification
-            log "[pre-stop] Maintenance mode active — upgrade restart detected, deferring notification to monitor"
-            echo "upgrade" > "$MANAGED_RESTART_FLAG"
         else
             log "[pre-stop] Gateway stopped cleanly — sending restart notification"
             echo "managed" > "$MANAGED_RESTART_FLAG"
