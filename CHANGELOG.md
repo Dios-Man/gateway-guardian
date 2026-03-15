@@ -2,6 +2,24 @@
 
 All notable changes to gateway-guardian are documented here.
 
+## [1.4.2] - 2026-03-15
+
+### Fixed
+
+- **Upgrade notification lost on process restart** — when gateway restarts during upgrade,
+  config-watcher process itself gets restarted by systemd, causing the upgrade notification
+  sent by `monitor_gateway_recovery()` to be lost mid-flight
+- **check_maintenance()**: when maintenance mode turns OFF, now checks if `upgrade` flag
+  exists in `MANAGED_RESTART_FLAG` — if so, sends deferred upgrade notification instead of
+  the generic maintenance-off message
+- Upgrade notification is now guaranteed to be delivered regardless of process restarts
+
+### Result: reliable 2-notification upgrade sequence
+1. 🔧 维护模式已开启 (on `touch` maintenance flag)  
+2. ⚙️ 检测到 OpenClaw 升级 — 网关已自动重启 (on `rm` maintenance flag)
+
+---
+
 ## [1.4.1] - 2026-03-15
 
 ### Fixed

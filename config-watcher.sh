@@ -26,7 +26,15 @@ check_maintenance() {
         if [ "$_MAINTENANCE_WAS_ACTIVE" = "1" ]; then
             _MAINTENANCE_WAS_ACTIVE=0
             log "▶️  Maintenance mode ended — monitoring resumed"
-            notify_status "$_MSG_MAINTENANCE_OFF"
+            # If upgrade flag exists, the upgrade notification was lost (process restart during upgrade)
+            # Send it now as part of maintenance-off sequence
+            if [ "$(cat "$MANAGED_RESTART_FLAG" 2>/dev/null)" = "upgrade" ]; then
+                rm -f "$MANAGED_RESTART_FLAG"
+                log "[maintenance-off] Sending deferred upgrade notification"
+                notify_status "$_MSG_UPGRADE_DETECTED"
+            else
+                notify_status "$_MSG_MAINTENANCE_OFF"
+            fi
         fi
         return 1  # maintenance not active
     fi
