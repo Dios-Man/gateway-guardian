@@ -185,24 +185,37 @@ To uninstall, tell me: "uninstall gateway-guardian" / "卸载 gateway-guardian"
 
 ---
 
-## Maintenance Mode
+## Upgrading OpenClaw (AI-executed)
 
-Guardian can be paused during planned operations (upgrades, config edits) using a file-based switch:
+**Always use the upgrade script** — never run `npm install -g openclaw` directly.
+The script handles maintenance mode automatically, preventing missed notifications and race conditions.
 
 ```bash
-# Pause monitoring (e.g. before upgrade)
+bash ~/.openclaw/workspace/skills/gateway-guardian/upgrade-openclaw.sh
+# or to pin a version:
+bash ~/.openclaw/workspace/skills/gateway-guardian/upgrade-openclaw.sh 2026.3.13
+```
+
+The script:
+1. Enables maintenance mode → sends "🔧 维护模式已开启" notification
+2. Runs `npm install -g openclaw@<version>`
+3. Validates config (auto-rollback on failure)
+4. Disables maintenance mode → sends "⚙️ 检测到 OpenClaw 升级" notification
+5. On **any failure**: removes maintenance flag automatically (via `trap EXIT`)
+
+## Maintenance Mode (manual)
+
+For non-upgrade planned operations (config edits, debugging):
+
+```bash
+# Pause monitoring
 touch ~/.openclaw/.guardian-maintenance
 
 # Resume monitoring
 rm ~/.openclaw/.guardian-maintenance
 ```
 
-Guardian will send a Feishu notification when maintenance mode turns on/off.
-
-For upgrades specifically, set the managed restart flag type to `upgrade` so the recovery notification reflects it correctly:
-```bash
-echo "upgrade" > /tmp/guardian-managed-restart
-```
+Guardian sends a Feishu notification when maintenance mode turns on/off.
 
 ---
 

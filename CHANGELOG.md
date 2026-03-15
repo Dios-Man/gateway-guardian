@@ -2,6 +2,30 @@
 
 All notable changes to gateway-guardian are documented here.
 
+## [1.4.3] - 2026-03-16
+
+### Added
+
+- **`upgrade-openclaw.sh`** — safe upgrade script that wraps `npm install -g openclaw`
+  with automatic maintenance mode management
+  - Step 1: enables maintenance mode (sends 🔧 notification)
+  - Step 2: runs `npm install -g openclaw@<version>`
+  - Step 3: validates config (auto-rollback on failure)
+  - Step 4: disables maintenance mode (triggers ⚙️ upgrade notification)
+  - `trap EXIT` ensures maintenance flag is always cleaned up, even on failure
+  - Usage: `bash upgrade-openclaw.sh` or `bash upgrade-openclaw.sh 2026.3.13`
+
+- **SKILL.md**: "Upgrading OpenClaw" section now documents script-based upgrade workflow
+  as the required method; direct `npm install -g openclaw` is discouraged
+
+### Motivation
+
+During testing (2026-03-15), manual maintenance mode was forgotten/interrupted multiple
+times, causing incorrect notifications. The upgrade script eliminates human error by
+making maintenance mode an intrinsic part of the upgrade process.
+
+---
+
 ## [1.4.2] - 2026-03-15
 
 ### Fixed
