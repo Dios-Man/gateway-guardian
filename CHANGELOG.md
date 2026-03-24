@@ -2,6 +2,28 @@
 
 All notable changes to gateway-guardian are documented here.
 
+## [1.6.2] - 2026-03-24
+
+### Fixed
+
+- **SKILL.md: guardian.conf placeholder resolution** — added explicit table showing how to
+  resolve `FALLBACK_CHANNEL` and `FALLBACK_TARGET` from conversation context before writing
+  the conf file; Step 4 now clearly states placeholders must be substituted before running
+- **inotify-tools install**: added non-sudo fallback and manual install prompt for
+  environments without elevated permissions
+
+---
+
+## [1.6.1] - 2026-03-24
+
+### Fixed
+
+- **SKILL.md: removed hardcoded bot name** — replaced all references to '小木' with
+  generic terms (`通知群`, `网关`) so the skill works correctly for any user, not just
+  installations where the bot is named '小木'
+
+---
+
 ## [1.6.0] - 2026-03-24
 
 ### Added
