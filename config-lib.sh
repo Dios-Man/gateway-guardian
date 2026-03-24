@@ -93,8 +93,8 @@ else
 
     _MSG_RECOVERY_SUCCESS_TITLE="✅ OpenClaw 网关守护 - 网关已恢复"
     _MSG_RECOVERY_SUCCESS_EVENT="网关崩溃后已自动重启恢复"
-    _MSG_STAFF_RECOVERY="${BOT_NAME:-OpenClaw} 刚才进行了一次系统自动维护（约1-2分钟），现在已恢复正常 ✅
-如果刚才有消息没收到回复，请重新发一遍，${BOT_NAME:-OpenClaw} 在的～"
+    _MSG_STAFF_RECOVERY="${BOT_NAME:-OpenClaw}刚才进行了一次系统自动维护（约1-2分钟），现在已恢复正常 ✅
+如果刚才有消息没收到回复，请重新发一遍，${BOT_NAME:-OpenClaw}在的～"
     _MSG_RECOVERY_FAIL_TITLE="🚨 OpenClaw 网关守护 - 需要人工处理"
     _MSG_RECOVERY_FAIL_EVENT="网关崩溃，自动恢复失败"
     _MSG_RECOVERY_FAIL_REASON="多次重启后网关仍无响应"
