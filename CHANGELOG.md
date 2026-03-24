@@ -2,6 +2,34 @@
 
 All notable changes to gateway-guardian are documented here.
 
+## [1.6.0] - 2026-03-24
+
+### Added
+
+- **Team/staff group notifications** — optional group notification on gateway recovery
+  - New `STAFF_GROUP_CHAT_ID` field in `guardian.conf` (empty by default, opt-in only)
+  - New `BOT_NAME` field in `guardian.conf` — display name used in staff messages (default: `OpenClaw`)
+  - Recovery message uses `BOT_NAME` so teams with custom agent names get friendly, branded notifications
+  - Supported channels: Feishu (`oc_xxx`), Telegram (`-100xxx`), Discord (numeric channel id)
+  - `notify_success()` calls `_send_staff_group_notify()` after owner notification; urgent alerts do NOT notify the group
+  - Gracefully skipped when `STAFF_GROUP_CHAT_ID` is empty — no config change required for existing installs
+
+- **Post-install team group setup flow** in SKILL.md
+  - Installer now asks for `BOT_NAME` during setup
+  - After install, AI prompts user with optional group config command (`设置小木通知群: oc_xxx` / `set guardian group: <id>`)
+  - New "Set Team Group" skill section handles the config command and updates `guardian.conf`
+
+### Changed
+
+- `guardian.conf` template expanded with `BOT_NAME` and `STAFF_GROUP_CHAT_ID` fields (both optional, with inline format docs)
+- Installation steps renumbered (Step 3 split into bot-name prompt + conf write)
+
+### Design principles
+
+- Default behavior unchanged: existing installs continue to work without any config update
+- Staff sees human-friendly message; owner sees technical detail — two separate notification paths
+- Failed/urgent alerts never reach the staff group (employees can't fix gateway crashes)
+
 ## [1.5.0] - 2026-03-16
 
 ### Reverted

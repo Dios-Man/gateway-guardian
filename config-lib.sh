@@ -23,6 +23,8 @@ _GUARDIAN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   FALLBACK_CHANNEL=feishu
 #   FALLBACK_TARGET=user:ou_xxx
 #   LOCALE=zh   # or: en
+#   BOT_NAME=OpenClaw             # optional: display name used in staff notifications
+#   STAFF_GROUP_CHAT_ID=          # optional: group/channel id for team notifications
 
 # ── Language strings ───────────────────────────────────────────────────────────
 LOCALE="${LOCALE:-zh}"
@@ -48,6 +50,8 @@ if [ "$LOCALE" = "en" ]; then
 
     _MSG_RECOVERY_SUCCESS_TITLE="✅ OpenClaw Gateway Guardian — Gateway Recovered"
     _MSG_RECOVERY_SUCCESS_EVENT="Gateway crashed and was automatically restarted"
+    _MSG_STAFF_RECOVERY="${BOT_NAME:-OpenClaw} just completed a brief system maintenance (~1-2 min) and is back online ✅
+If your message didn't get a reply just now, please resend it — ${BOT_NAME:-OpenClaw} is here!"
     _MSG_RECOVERY_FAIL_TITLE="🚨 OpenClaw Gateway Guardian — Gateway Recovery Failed"
     _MSG_RECOVERY_FAIL_EVENT="Gateway crashed and could not be restarted automatically"
     _MSG_RECOVERY_FAIL_REASON="Gateway still unresponsive after restart attempts"
@@ -89,6 +93,8 @@ else
 
     _MSG_RECOVERY_SUCCESS_TITLE="✅ OpenClaw 网关守护 - 网关已恢复"
     _MSG_RECOVERY_SUCCESS_EVENT="网关崩溃后已自动重启恢复"
+    _MSG_STAFF_RECOVERY="${BOT_NAME:-OpenClaw} 刚才进行了一次系统自动维护（约1-2分钟），现在已恢复正常 ✅
+如果刚才有消息没收到回复，请重新发一遍，${BOT_NAME:-OpenClaw} 在的～"
     _MSG_RECOVERY_FAIL_TITLE="🚨 OpenClaw 网关守护 - 需要人工处理"
     _MSG_RECOVERY_FAIL_EVENT="网关崩溃，自动恢复失败"
     _MSG_RECOVERY_FAIL_REASON="多次重启后网关仍无响应"
@@ -155,7 +161,17 @@ _send_notify() {
         --message "$msg" >> "$LOG" 2>&1 || log "⚠️  Notification send failed"
 }
 
-# Success notification — includes "forward to me" hint
+# 员工/团队群通知 — 仅在恢复成功时发送，未配置则静默跳过
+_send_staff_group_notify() {
+    [ -z "$STAFF_GROUP_CHAT_ID" ] && return
+    local _channel="${FALLBACK_CHANNEL:-feishu}"
+    timeout 30 openclaw message send \
+        --channel "$_channel" \
+        --target  "chat:${STAFF_GROUP_CHAT_ID}" \
+        --message "$_MSG_STAFF_RECOVERY" >> "$LOG" 2>&1 || log "⚠️  Staff group notification send failed"
+}
+
+# Success notification — includes "forward to me" hint + optional staff group notify
 notify_success() {
     local title="$1"
     local body="$2"
@@ -165,6 +181,7 @@ notify_success() {
 ${body}
 
 ${_MSG_FORWARD_HINT}"
+    _send_staff_group_notify
 }
 
 # Urgent notification — requires manual intervention, no forward hint
