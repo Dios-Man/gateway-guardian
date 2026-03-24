@@ -27,7 +27,7 @@ Activate this skill when the user:
 - Says "install gateway-guardian", "帮我安装", "install this skill", or similar
 - Says "gateway-guardian status", "guardian status", "guardian 运行正常吗", or similar
 - Says "uninstall gateway-guardian", "卸载 gateway-guardian", or similar
-- Sends a message matching `设置小木通知群: <id>` or `set guardian group: <id>`
+- Sends a message matching `设置通知群: <id>` or `set guardian group: <id>`
 
 ---
 
@@ -91,7 +91,7 @@ done
 
 **Step 3 — Ask bot name (optional)**
 
-Ask the user: "How should I refer to myself in team notifications? (e.g. 小木, Claw, OpenClaw — press Enter to skip and use the default 'OpenClaw')"
+Ask the user: "What name should I use for myself in team notifications? (e.g. Claw, MyBot, OpenClaw — press Enter to skip and use the default 'OpenClaw')"
 
 Record as `BOT_NAME`. If the user skips, use `OpenClaw`.
 
@@ -212,9 +212,9 @@ To uninstall, tell me: "uninstall gateway-guardian" / "卸载 gateway-guardian"
 If OpenClaw is used by multiple people, you can configure a group to receive recovery notifications.
 
 zh prompt:
-> 如果团队有多人使用小木，可以配置一个通知群，当小木恢复后自动通知大家。
+> 如果团队有多人使用，可以配置一个通知群，网关恢复后自动通知大家。
 > 请发送以下消息完成配置（支持飞书 / Telegram / Discord）：
-> `设置小木通知群: oc_xxx`
+> `设置通知群: oc_xxx`
 
 en prompt:
 > If your team uses OpenClaw together, you can set up a group notification.
@@ -245,7 +245,7 @@ Report: service active/inactive, recent log lines, number of config backups on h
 
 ## Set Team Group (AI-executed)
 
-When the user sends a message matching `设置小木通知群: <id>` or `set guardian group: <id>`:
+When the user sends a message matching `设置通知群: <id>` or `set guardian group: <id>`:
 
 1. Extract the group ID from the message
 2. Determine the channel based on ID format:
@@ -258,7 +258,7 @@ SKILL_DIR="$HOME/.openclaw/workspace/skills/gateway-guardian"
 sed -i "s|^STAFF_GROUP_CHAT_ID=.*|STAFF_GROUP_CHAT_ID={extracted_id}|" "$SKILL_DIR/guardian.conf"
 ```
 4. Confirm to the user (zh/en based on LOCALE):
-   - zh: `✅ 已配置团队通知群，小木恢复后会自动通知群里的成员。`
+   - zh: `✅ 已配置团队通知群，网关恢复后会自动通知群里的成员。`
    - en: `✅ Team group configured. Members will be notified automatically when the gateway recovers.`
 
 ---
