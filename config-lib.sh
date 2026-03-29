@@ -172,16 +172,22 @@ _send_staff_group_notify() {
 }
 
 # Success notification — includes "forward to me" hint + optional staff group notify
+# 如果配置了固定群，只发固定群；没配置才动态检测最活跃 session
 notify_success() {
     local title="$1"
     local body="$2"
-    detect_session
-    _send_notify "${title}
+    if [ -n "$STAFF_GROUP_CHAT_ID" ]; then
+        # 有固定群配置 → 只发固定群
+        _send_staff_group_notify
+    else
+        # 没有固定群配置 → 动态检测最活跃 session
+        detect_session
+        _send_notify "${title}
 
 ${body}
 
 ${_MSG_FORWARD_HINT}"
-    _send_staff_group_notify
+    fi
 }
 
 # Urgent notification — requires manual intervention, no forward hint

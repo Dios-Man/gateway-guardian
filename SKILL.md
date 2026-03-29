@@ -305,4 +305,5 @@ Confirm removal is complete.
 - Installation requires an active message context (in-conversation metadata is used for notification setup).
 - `guardian.conf` contains private notification config and is never uploaded to GitHub.
 - Config backups in `~/.openclaw/config-backups/` are retained across uninstalls unless the user explicitly requests deletion.
-- Notifications use dynamic session detection at runtime; `guardian.conf` is only a fallback.
+- 群通知（`_MSG_STAFF_RECOVERY`）：配置了 `STAFF_GROUP_CHAT_ID` 则只发该固定群，未配置则动态检测最活跃 session 发送。
+- 技术通知（urgent/status）：始终通过动态 session 检测发送，优先私聊，无私聊 session 时发最活跃群。`guardian.conf` 的 `FALLBACK_CHANNEL`/`FALLBACK_TARGET` 作为兜底。
